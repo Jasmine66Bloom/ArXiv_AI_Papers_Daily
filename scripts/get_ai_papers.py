@@ -246,7 +246,7 @@ def df_to_markdown_table(papers_by_category: dict, target_date) -> str:
                     paper['title'],
                     paper.get('title_zh', ''),
                     paper['authors'],
-                    f"<{paper['pdf_url']}>",
+                    f"[PDF]({paper['pdf_url']})",
                     code_and_contribution,
                 ]
                 values = [str(v).replace('\n', ' ').replace('|', '&#124;') for v in values]
@@ -303,7 +303,7 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
                 # 作者（已经是格式化好的字符串）
                 markdown += f'**Authors:** {paper["authors"]}<br />\n'
                 # PDF链接
-                markdown += f'**PDF:** <{paper["pdf_url"]}><br />\n'
+                markdown += f'**PDF:** [PDF]({paper["pdf_url"]})<br />\n'
 
                 # 合并代码链接和精简后的核心贡献
                 markdown += '**Code/Contribution:**\n'
