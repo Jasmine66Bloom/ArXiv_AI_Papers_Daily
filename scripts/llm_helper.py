@@ -27,12 +27,13 @@ class ChatGLMHelper:
             self.model = DOUBAO_MODEL
             print(f"🤖 使用豆包大模型: {self.model}")
         elif self.provider == "chatglm":
-            from zhipuai import ZhipuAI
-            from config import CHATGLM_API_KEY, CHATGLM_MODEL
+            from chatglm_client import ChatGLMClient
+            from config import CHATGLM_API_KEY, CHATGLM_MODEL, CHATGLM_BASE_URL, CHATGLM_ENABLE_THINKING
             if not CHATGLM_API_KEY:
                 raise ValueError("请在config.py中设置CHATGLM_API_KEY")
-            self.client = ZhipuAI(api_key=CHATGLM_API_KEY)
+            self.client = ChatGLMClient(api_key=CHATGLM_API_KEY, model=CHATGLM_MODEL, base_url=CHATGLM_BASE_URL)
             self.model = CHATGLM_MODEL
+            self.enable_thinking = CHATGLM_ENABLE_THINKING
             print(f"🤖 使用ChatGLM模型: {self.model}")
         else:
             raise ValueError(f"不支持的LLM提供商: {LLM_PROVIDER}，请在config.py中设置LLM_PROVIDER为'doubao'或'chatglm'")
@@ -63,13 +64,22 @@ class ChatGLMHelper:
 
         for attempt in range(max_retries):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.0,  # 降低温度以获得更确定的结果
-                    max_tokens=200,
-                    top_p=0.9,
-                )
+                request_params = {
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.0,  # 降低温度以获得更确定的结果
+                    "max_tokens": 500,  # 增加 max_tokens 以支持思考过程
+                    "top_p": 0.9,
+                }
+                
+                # 对于 glm-4.7 模型，根据配置设置 thinking 参数
+                if self.provider == "chatglm" and "glm-4.7" in self.model:
+                    if self.enable_thinking:
+                        request_params["thinking"] = {"type": "enabled"}
+                    else:
+                        request_params["thinking"] = {"type": "disabled"}
+                
+                response = self.client.chat.completions.create(**request_params)
                 translation = response.choices[0].message.content.strip()
                 
                 # 清理可能的多余内容
@@ -627,13 +637,21 @@ class ChatGLMHelper:
 标题：{title}
 摘要：{abstract[:500] if len(abstract) > 500 else abstract}"""
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=200,
-                top_p=0.7,
-            )
+            request_params = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.3,
+                "max_tokens": 200,
+                "top_p": 0.7,
+            }
+            
+            if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.enable_thinking:
+                    request_params["thinking"] = {"type": "enabled"}
+                else:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = self.client.chat.completions.create(**request_params)
             
             # 获取单句话总结
             contribution_summary = response.choices[0].message.content.strip()
@@ -700,13 +718,21 @@ class ChatGLMHelper:
 }}"""
 
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=100,
-                top_p=0.7,
-            )
+            request_params = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 100,
+                "top_p": 0.7,
+            }
+            
+            if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.enable_thinking:
+                    request_params["thinking"] = {"type": "enabled"}
+                else:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = self.client.chat.completions.create(**request_params)
             result = response.choices[0].message.content.strip()
             
             # 清理和解析JSON
@@ -796,17 +822,21 @@ class ChatGLMHelper:
 
 请直接返回最合适的类别名称，不要有任何解释或额外文本。只返回类别名称。"""
             
-            # 调整模型参数，提高稳定性
-            temperature = 0.01  # 极低的温度提高稳定性
+            request_params = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.01,
+                "max_tokens": 50,
+                "top_p": 0.3,
+            }
             
-            # 调用 ChatGLM 进行分类决策
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=temperature,  # 使用极低的温度提高稳定性
-                max_tokens=50,
-                top_p=0.3,  # 降低top_p以提高稳定性
-            )
+            if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.enable_thinking:
+                    request_params["thinking"] = {"type": "enabled"}
+                else:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = self.client.chat.completions.create(**request_params)
             
             # 获取分类结果
             category = response.choices[0].message.content.strip()
@@ -883,14 +913,21 @@ class ChatGLMHelper:
 
 请直接返回最合适的子类别名称，不要有任何解释或额外文本。如果无法确定，请返回"未指定"。"""
             
-            # 调用 ChatGLM 进行子类别分类
-            response = self.client.chat.completions.create(
-                model=self.model,  # 修改为 flashx 版本
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.05,
-                max_tokens=50,
-                top_p=0.5,
-            )
+            request_params = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.05,
+                "max_tokens": 50,
+                "top_p": 0.5,
+            }
+            
+            if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.enable_thinking:
+                    request_params["thinking"] = {"type": "enabled"}
+                else:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = self.client.chat.completions.create(**request_params)
             
             # 获取分类结果
             subcategory = response.choices[0].message.content.strip()
@@ -956,13 +993,21 @@ class ChatGLMHelper:
 请直接返回子类别名称，不要有任何解释。如果无法确定，请返回"未指定"。"""
             
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,  # 修改为 flashx 版本
-                    messages=[{"role": "user", "content": simple_prompt}],
-                    temperature=0.1,
-                    max_tokens=50,
-                    top_p=0.7,
-                )
+                request_params = {
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": simple_prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": 50,
+                    "top_p": 0.7,
+                }
+                
+                if self.provider == "chatglm" and "glm-4.7" in self.model:
+                    if self.enable_thinking:
+                        request_params["thinking"] = {"type": "enabled"}
+                    else:
+                        request_params["thinking"] = {"type": "disabled"}
+                
+                response = self.client.chat.completions.create(**request_params)
                 
                 second_subcategory = response.choices[0].message.content.strip()
                 
@@ -1024,13 +1069,21 @@ class ChatGLMHelper:
 - reason字段应该简洁明了，不要包含换行符或特殊字符
 - 只返回JSON对象，不要包含markdown代码块标记或其他文字"""
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=500,
-                top_p=0.7,
-            )
+            request_params = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.1,
+                "max_tokens": 500,
+                "top_p": 0.7,
+            }
+            
+            if self.provider == "chatglm" and "glm-4.7" in self.model:
+                if self.enable_thinking:
+                    request_params["thinking"] = {"type": "enabled"}
+                else:
+                    request_params["thinking"] = {"type": "disabled"}
+            
+            response = self.client.chat.completions.create(**request_params)
             
             result = response.choices[0].message.content
             # print(f"论文标题: {title[:50]}...")

@@ -15,9 +15,9 @@ import traceback
 import arxiv
 
 # 查询参数设置
-QUERY_DAYS_AGO = 5          # 查询几天前的论文，0=今天，1=昨天，2=前天
-MAX_RESULTS = 1200           # 最大返回论文数量
-MAX_WORKERS = 10            # 并行处理的最大线程数
+QUERY_DAYS_AGO = 1          # 查询几天前的论文，0=今天，1=昨天，2=前天
+MAX_RESULTS = 300           # 最大返回论文数量
+MAX_WORKERS = 4            # 并行处理的最大线程数
 
 # ArXiv 类别配置（核心AI类别）
 ARXIV_CATEGORIES = [

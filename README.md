@@ -10,6 +10,7 @@ This project automatically fetches, analyzes, and organizes the latest AI/Algori
 ---
 
 ## 2026.01
+* [2026-01-06.md](./data/2026-01/2026-01-06.md)
 * [2026-01-05.md](./data/2026-01/2026-01-05.md)
 * [2026-01-04.md](./data/2026-01/2026-01-04.md)
 * [2026-01-03.md](./data/2026-01/2026-01-03.md)
